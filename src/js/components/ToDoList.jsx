@@ -1,26 +1,27 @@
-import React, {useEffect, useState} from "react";
+import React, { useEffect, useState } from "react";
 import { ensureUser, addTodo, deleteTodo } from "../../services/todoservices";
 import { getUserTodos, deleteUserAndTodos } from "../../services/userservices";
-const ToDoList = () => {
+
+const ToDoList = ({ username }) => {
+  
   const [inputText, setInputText] = useState("");
   const [toDos, setToDos] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const miUsuario = "testuser123";
-
   useEffect(() => {
-    inicializar();
+    if (username) {
+      inicializar(username);
+    }
+  }, [username]); // Depende del username
 
-  }, []);
-
-  const inicializar = async () => {
+  const inicializar = async (currentUser) => {
     setLoading(true);
     setError(null);
     try {
-      await ensureUser(miUsuario);                
-      const tareas = await getUserTodos(miUsuario); 
-      setToDos(tareas);                             
+      await ensureUser(currentUser);
+      const tareas = await getUserTodos(currentUser);
+      setToDos(tareas);
     } catch (err) {
       console.error("Hubo un error en la inicialización:", err);
       setError(err.message || "No se pudieron cargar las tareas");
@@ -42,8 +43,8 @@ const ToDoList = () => {
     setLoading(true);
     setError(null);
     try {
-      await addTodo(miUsuario, texto);                 
-      const tareas = await getUserTodos(miUsuario);    
+      await addTodo(username, texto);
+      const tareas = await getUserTodos(username);
       setToDos(tareas);
       setInputText("");
     } catch (err) {
@@ -58,8 +59,8 @@ const ToDoList = () => {
     setLoading(true);
     setError(null);
     try {
-      await deleteTodo(id);                            
-      const tareas = await getUserTodos(miUsuario);    
+      await deleteTodo(id);
+      const tareas = await getUserTodos(username);
       setToDos(tareas);
     } catch (err) {
       console.error("Error al borrar tarea:", err);
@@ -73,9 +74,9 @@ const ToDoList = () => {
     setLoading(true);
     setError(null);
     try {
-      await deleteUserAndTodos(miUsuario);  
-      await ensureUser(miUsuario);          
-      setToDos([]);                         
+      await deleteUserAndTodos(username);
+      await ensureUser(username);
+      setToDos([]);
     } catch (err) {
       console.error("Error al limpiar todas las tareas:", err);
       setError(err.message || "No se pudo limpiar la lista");
@@ -85,71 +86,73 @@ const ToDoList = () => {
   };
 
   return (
-    <div className="container text-secondary">
-      <div className="row justify-content-center">
-        <div className="col-12 col-sm-10 col-md-8 col-lg-6">
-          <div className="card shadow-sm mt-4 mx-auto" style={{ maxWidth: "600px", width: "100%" }}>
-            <ul className="list-group list-group-flush">
-
-              <li className="list-group-item p-0">
-                <div className="input-group">
-                  <input
-                    type="text"
-                    className="form-control border-0 rounded-0"
-                    placeholder="What do we have to accomplish today?"
-                    value={inputText}
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeyDown}
-                    disabled={loading}
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={handleAdd}
-                    disabled={loading}
-                  >
-                    Add Task
-                  </button>
-                </div>
-                {loading && <div className="p-2 small text-muted">Syncing…</div>}
-                {error && <div className="p-2 small text-danger">{error}</div>}
-              </li>
-
-              {toDos.map((todo) => (
-                <li
-                  key={todo.id}
-                  className="list-group-item d-flex justify-content-between align-items-center"
+    <div className="row justify-content-center w-100"> 
+      <div className="col-12 col-sm-10 col-md-8 col-lg-6"> 
+        <h2 className="text-center h4 mb-4">
+          Tareas de <span className="text-primary">{username}</span>
+        </h2>
+        <div
+          className="card shadow-sm mx-auto" 
+          style={{ maxWidth: "600px", width: "100%" }}
+        >
+          <ul className="list-group list-group-flush">
+            <li className="list-group-item p-0">
+              <div className="input-group">
+                <input
+                  type="text"
+                  className="form-control border-0 rounded-0"
+                  placeholder="What do we have to accomplish today?"
+                  value={inputText}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleAdd}
+                  disabled={loading}
                 >
-                  {todo.text}
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-link text-secondary"
-                    onClick={() => handleDelete(todo.id)}
-                    disabled={loading}
-                  >
-                    &times;
-                  </button>
-                </li>
-              ))}
-            </ul>
+                  Add Task
+                </button>
+              </div>
+              {loading && <div className="p-2 small text-muted">Syncing…</div>}
+              {error && <div className="p-2 small text-danger">{error}</div>}
+            </li>
 
-            <div className="card-footer d-flex justify-content-between align-items-center text-muted small">
-              <span>
-                {toDos.length === 0
-                  ? "No tasks left"
-                  : `${toDos.length} item${toDos.length > 1 ? "s" : ""} left`}
-              </span>
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-secondary"
-                onClick={handleClearAll}
-                disabled={loading}
-                title="Borrar todas las tareas del servidor"
+            {toDos.map((todo) => (
+              <li
+                key={todo.id}
+                className="list-group-item d-flex justify-content-between align-items-center"
               >
-                Clear all
-              </button>
-            </div>
+                {todo.text}
+                <button
+                  type="button"
+                  className="btn btn-sm btn-link text-secondary"
+                  onClick={() => handleDelete(todo.id)}
+                  disabled={loading}
+                >
+                  &times;
+                </button>
+              </li>
+            ))}
+          </ul>
 
+          <div className="card-footer d-flex justify-content-between align-items-center text-muted small">
+            <span>
+              {toDos.length === 0
+                ? "No tasks left"
+                : `${toDos.length} item${toDos.length > 1 ? "s" : ""} left`}
+            </span>
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              onClick={handleClearAll}
+              disabled={loading}
+              title="Borrar todas las tareas del servidor"
+            >
+              Clear all
+            </button>
           </div>
         </div>
       </div>
